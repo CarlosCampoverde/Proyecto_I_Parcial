@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App - Sala de Chat en Tiempo Real</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-comments"></i>
+                <h1>Chat App</h1>
+            </div>
+            <nav class="nav">
+                <button id="adminBtn" class="btn btn-secondary">
+                    <i class="fas fa-user-shield"></i>
+                    Administrador
+                </button>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Welcome Section -->
+            <section id="welcomeSection" class="welcome-section">
+                <div class="welcome-content">
+                    <h2>Bienvenido a Chat App</h2>
+                    <p>Únete a salas de chat en tiempo real con tus amigos </p>
+                    
+                    <div class="join-form">
+                        <h3>Unirse a una Sala</h3>
+                        <form id="joinForm">
+                            <div class="form-group">
+                                <label for="nickname">Nickname</label>
+                                <input type="text" id="nickname" name="nickname" placeholder="Ingresa tu nickname" required maxlength="20">
+                                <small class="help-text">2-20 caracteres, solo letras, números y guiones</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="roomPin">PIN de la Sala</label>
+                                <input type="text" id="roomPin" name="roomPin" placeholder="123456" required maxlength="6" pattern="[0-9]{6}">
+                                <small class="help-text">PIN de 6 dígitos proporcionado por el administrador</small>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Unirse al Chat
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Admin Section (Hidden by default) -->
+            <section id="adminSection" class="admin-section" style="display: none;">
+                <div class="admin-content">
+                    <!-- Admin Login -->
+                    <div id="adminLogin" class="admin-login">
+                        <h3>Acceso de Administrador</h3>
+                        <form id="adminLoginForm">
+                            <div class="form-group">
+                                <label for="adminUsername">Usuario</label>
+                                <input type="text" id="adminUsername" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminPassword">Contraseña</label>
+                                <input type="password" id="adminPassword" name="password" required>
+                            </div>
+                           <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                                <button type="button" id="showRegisterBtn" class="btn btn-link">¿No tienes cuenta? Registrarse</button>x
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Admin Register -->
+                    <div id="adminRegister" class="admin-register" style="display: none;">
+                        <h3>Registro de Administrador</h3>
+                        <form id="adminRegisterForm">
+                            <div class="form-group">
+                                <label for="regUsername">Usuario</label>
+                                <input type="text" id="regUsername" name="username" required minlength="3" maxlength="30">
+                            </div>
+                            <div class="form-group">
+                                <label for="regPassword">Contraseña</label>
+                                <input type="password" id="regPassword" name="password" required minlength="6">
+                            </div>
+                            <div class="form-group">
+                                <label for="regConfirmPassword">Confirmar Contraseña</label>
+                                <input type="password" id="regConfirmPassword" name="confirmPassword" required>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Registrarse</button>
+                                <button type="button" id="showLoginBtn" class="btn btn-link">¿Ya tienes cuenta? Iniciar Sesión</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Admin Dashboard -->
+                    <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+                        <h3>Panel de Administración</h3>
+                        
+                        <!-- Create Room Form -->
+                        <div class="create-room-section">
+                            <h4>Crear Nueva Sala</h4>
+                            <form id="createRoomForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="roomName">Nombre de la Sala</label>
+                                        <input type="text" id="roomName" name="name" required minlength="3" maxlength="50">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="roomType">Tipo de Sala</label>
+                                        <select id="roomType" name="type" required>
+                                            <option value="text">Solo Texto</option>
+                                            <option value="multimedia">Texto y Archivos</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminPassword">Contraseña de Administración (Opcional)</label>
+                                    <input type="password" id="adminPassword2" name="adminPassword" placeholder="Dejar vacío si no se requiere">
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-plus"></i>
+                                    Crear Sala
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Rooms List -->
+                        <div class="rooms-section">
+                            <div class="section-header">
+                                <h4>Salas Activas</h4>
+                                <button id="refreshRoomsBtn" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Actualizar
+                                </button>
+                            </div>
+                            <div id="roomsList" class="rooms-list">
+                                <!-- Las salas se cargarán dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chat Section (Hidden by default) -->
+            <section id="chatSection" class="chat-section" style="display: none;">
+                <div class="chat-container">
+                    <!-- Chat Header -->
+                    <div class="chat-header">
+                        <div class="room-info">
+                            <h3 id="currentRoomName">Sala de Chat</h3>
+                            <span id="currentRoomType" class="room-type">Tipo: Texto</span>
+                        </div>
+                        <div class="chat-actions">
+                            <button id="toggleUsersBtn" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-users"></i>
+                                Usuarios (<span id="userCount">0</span>)
+                            </button>
+                            <button id="leaveRoomBtn" class="btn btn-danger btn-sm">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Salir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chat-body">
+                        <!-- Users Panel -->
+                        <div id="usersPanel" class="users-panel">
+                            <h4>Usuarios Conectados</h4>
+                            <div id="usersList" class="users-list">
+                                <!-- Lista de usuarios se carga dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Messages Area -->
+                        <div class="messages-area">
+                            <div id="messagesContainer" class="messages-container">
+                                <!-- Los mensajes aparecerán aquí -->
+                            </div>
+                            
+                            <!-- Typing Indicator -->
+                            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                                <span id="typingText"></span>
+                            </div>
+                            
+                            <!-- Message Input -->
+                            <div class="message-input-area">
+                                <form id="messageForm">
+                                    <div class="input-group">
+                                        <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." maxlength="500" autocomplete="off">
+                                        <button type="button" id="fileUploadBtn" class="btn btn-secondary" style="display: none;">
+                                            <i class="fas fa-paperclip"></i>
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                                <input type="file" id="fileInput" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 Chat App - Aplicación de Chat en Tiempo Real</p>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <p>Conectando...</p>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notification" class="notification" style="display: none;">
+        <span id="notificationText"></span>
+        <button id="closeNotification" class="close-btn">&times;</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
