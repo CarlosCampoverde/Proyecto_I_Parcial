@@ -51,7 +51,7 @@ class ChatApp {
         
         // Validación en tiempo real
         document.getElementById('nickname').addEventListener('input', (e) => this.validateNickname(e.target.value));
-        document.getElementById('roomPin').addEventListener('input', (e) => this.validatePin(e.target.value));
+        document.getElementById('joinRoomPin').addEventListener('input', (e) => this.validatePin(e.target.value));
     }
 
     // Inicializar Socket.IO
@@ -143,8 +143,8 @@ class ChatApp {
     }
 
     validatePin(pin) {
-        const pinInput = document.getElementById('roomPin');
-        const isValid = /^\d{6}$/.test(pin);
+        const pinInput = document.getElementById('joinRoomPin');
+        const isValid = /^\d{4,10}$/.test(pin);
         
         if (pin.length === 0) {
             pinInput.style.borderColor = '#e9ecef';
@@ -169,7 +169,7 @@ class ChatApp {
         }
         
         if (!this.validatePin(pin)) {
-            this.showNotification('PIN debe tener exactamente 6 dígitos', 'error');
+            this.showNotification('PIN debe tener entre 4 y 10 dígitos', 'error');
             return;
         }
 
@@ -280,7 +280,7 @@ class ChatApp {
         const roomData = {
             name: formData.get('name').trim(),
             type: formData.get('type'),
-            adminPassword: formData.get('adminPassword') || null
+            pin: formData.get('pin').trim()
         };
 
         this.showLoading();
@@ -295,7 +295,7 @@ class ChatApp {
             const result = await response.json();
             
             if (result.success) {
-                this.showNotification(`Sala creada. PIN: ${result.room.pin}`, 'success');
+                this.showNotification(`Sala creada exitosamente!\nID: ${result.room.id}\nPIN: ${result.room.pin}`, 'success');
                 this.loadRooms();
                 e.target.reset();
             } else {
@@ -581,15 +581,16 @@ class ChatApp {
                     <span class="room-type-badge ${room.type}">${room.type}</span>
                 </div>
                 <div class="room-info">
+                    <strong>ID:</strong> ${room.id}<br>
                     <strong>PIN:</strong> ${room.pin}<br>
                     <strong>Creado:</strong> ${createdAt}
                 </div>
                 <div class="room-actions">
                     <button class="btn btn-sm btn-info" onclick="chatApp.showRoomStats(${room.id})">
-                        <i class="fas fa-chart-bar"></i> Estadísticas
+                        Estadísticas
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="chatApp.deactivateRoom(${room.id})">
-                        <i class="fas fa-ban"></i> Desactivar
+                        Desactivar
                     </button>
                 </div>
             `;

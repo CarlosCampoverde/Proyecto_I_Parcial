@@ -58,12 +58,12 @@ router.use((req, res, next) => {
 // POST /api/rooms/create - Crear nueva sala
 router.post('/create', async (req, res) => {
     try {
-        const { name, type, adminPassword } = req.body;
+        const { name, type, pin } = req.body;
 
-        if (!name || !type) {
+        if (!name || !type || !pin) {
             return res.status(400).json({
                 success: false,
-                message: 'Nombre y tipo de sala son requeridos'
+                message: 'Nombre, tipo y PIN de sala son requeridos'
             });
         }
 
@@ -78,7 +78,7 @@ router.post('/create', async (req, res) => {
         const room = await roomManager.createRoom({
             name: name.trim(),
             type,
-            adminPassword
+            pin: pin.trim()
         });
 
         res.status(201).json({

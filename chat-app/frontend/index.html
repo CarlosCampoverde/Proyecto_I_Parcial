@@ -5,19 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App - Sala de Chat en Tiempo Real</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <i class="fas fa-comments"></i>
                 <h1>Chat App</h1>
             </div>
             <nav class="nav">
                 <button id="adminBtn" class="btn btn-secondary">
-                    <i class="fas fa-user-shield"></i>
                     Administrador
                 </button>
             </nav>
@@ -41,13 +38,12 @@
                             </div>
                             
                             <div class="form-group">
-                                <label for="roomPin">PIN de la Sala</label>
-                                <input type="text" id="roomPin" name="roomPin" placeholder="123456" required maxlength="6" pattern="[0-9]{6}">
-                                <small class="help-text">PIN de 6 dígitos proporcionado por el administrador</small>
+                                <label for="joinRoomPin">PIN de la Sala</label>
+                                <input type="text" id="joinRoomPin" name="roomPin" placeholder="1234" required minlength="4" maxlength="10" pattern="[0-9]{4,10}">
+                                <small class="help-text">PIN de 4-10 dígitos proporcionado por el administrador</small>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-sign-in-alt"></i>
                                 Unirse al Chat
                             </button>
                         </form>
@@ -122,11 +118,11 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="adminPassword">Contraseña de Administración (Opcional)</label>
-                                    <input type="password" id="adminPassword2" name="adminPassword" placeholder="Dejar vacío si no se requiere">
+                                    <label for="createRoomPin">PIN de Acceso</label>
+                                    <input type="text" id="createRoomPin" name="pin" required minlength="4" maxlength="10" pattern="[0-9]{4,10}" placeholder="1234">
+                                    <small class="help-text">PIN de 4-10 dígitos para acceder a la sala</small>
                                 </div>
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-plus"></i>
                                     Crear Sala
                                 </button>
                             </form>
@@ -137,7 +133,6 @@
                             <div class="section-header">
                                 <h4>Salas Activas</h4>
                                 <button id="refreshRoomsBtn" class="btn btn-secondary btn-sm">
-                                    <i class="fas fa-sync-alt"></i>
                                     Actualizar
                                 </button>
                             </div>
@@ -160,11 +155,9 @@
                         </div>
                         <div class="chat-actions">
                             <button id="toggleUsersBtn" class="btn btn-secondary btn-sm">
-                                <i class="fas fa-users"></i>
                                 Usuarios (<span id="userCount">0</span>)
                             </button>
                             <button id="leaveRoomBtn" class="btn btn-danger btn-sm">
-                                <i class="fas fa-sign-out-alt"></i>
                                 Salir
                             </button>
                         </div>
@@ -196,10 +189,10 @@
                                     <div class="input-group">
                                         <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." maxlength="500" autocomplete="off">
                                         <button type="button" id="fileUploadBtn" class="btn btn-secondary" style="display: none;">
-                                            <i class="fas fa-paperclip"></i>
+                                            Archivo
                                         </button>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-paper-plane"></i>
+                                            Enviar
                                         </button>
                                     </div>
                                 </form>

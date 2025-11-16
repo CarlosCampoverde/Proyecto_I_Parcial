@@ -1,18 +1,22 @@
 const { v4: uuidv4 } = require('uuid');
 
 class RoomManager {
-    constructor(database) {
+    constructor(database, redisManager = null) {
         this.db = database;
-    }
-
-    // Generar PIN único de 6 dígitos
-    generatePin() {
-        return Math.floor(100000 + Math.random() * 900000).toString();
+        this.redis = redisManager;
+        this.messageQueue = [];
+        this.batchSize = 10;
+        this.batchInterval = 1000; // 1 segundo
+        
+        // Iniciar procesamiento en lotes
+        if (this.redis) {
+            this.startBatchProcessing();
+        }
     }
 
     // Crear nueva sala
     async createRoom(roomData) {
-        const { name, type, adminPassword } = roomData;
+        const { name, type, pin } = roomData;
         
         // Validaciones
         if (!name || name.length < 3 || name.length > 50) {
@@ -23,27 +27,26 @@ class RoomManager {
             throw new Error('Tipo de sala inválido. Debe ser "text" o "multimedia"');
         }
 
-        let pin;
-        let attempts = 0;
-        const maxAttempts = 10;
+        // Validar PIN proporcionado por el administrador
+        if (!pin || pin.length < 4) {
+            throw new Error('El PIN debe tener al menos 4 dígitos');
+        }
 
-        // Generar PIN único
-        do {
-            pin = this.generatePin();
-            const existing = await this.db.get('SELECT id FROM rooms WHERE pin = ?', [pin]);
-            if (!existing) break;
-            attempts++;
-        } while (attempts < maxAttempts);
+        if (!/^\d+$/.test(pin)) {
+            throw new Error('El PIN debe contener solo números');
+        }
 
-        if (attempts >= maxAttempts) {
-            throw new Error('No se pudo generar un PIN único. Inténtalo más tarde.');
+        // Verificar que el PIN no existe
+        const existingRoom = await this.db.get('SELECT id FROM rooms WHERE pin = ?', [pin]);
+        if (existingRoom) {
+            throw new Error('Este PIN ya está en uso. Por favor, elige otro PIN.');
         }
 
         try {
             const result = await this.db.run(
                 `INSERT INTO rooms (name, type, pin, admin_password) 
                  VALUES (?, ?, ?, ?)`,
-                [name, type, pin, adminPassword || null]
+                [name, type, pin, null]
             );
 
             return {
@@ -61,16 +64,31 @@ class RoomManager {
         }
     }
 
-    // Obtener sala por PIN
+    // Obtener sala por PIN con cache
     async getRoomByPin(pin) {
-        if (!pin || pin.length !== 6) {
+        if (!pin || pin.length < 4) {
             return null;
         }
 
-        return await this.db.get(
+        // Intentar obtener del cache primero
+        if (this.redis) {
+            const cached = await this.redis.getCachedRoomInfo(`pin:${pin}`);
+            if (cached) {
+                return cached;
+            }
+        }
+
+        const room = await this.db.get(
             'SELECT * FROM rooms WHERE pin = ? AND is_active = 1',
             [pin]
         );
+
+        // Cachear el resultado si existe
+        if (room && this.redis) {
+            await this.redis.cacheRoomInfo(`pin:${pin}`, room, 1800); // 30 minutos
+        }
+
+        return room;
     }
 
     // Obtener sala por ID
@@ -112,30 +130,87 @@ class RoomManager {
         }
     }
 
-    // Guardar mensaje
+    // Guardar mensaje con procesamiento en lotes
     async saveMessage(messageData) {
         const { roomId, nickname, message, messageType = 'text', filePath = null, fileName = null } = messageData;
 
-        try {
-            const result = await this.db.run(
-                `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name) 
-                 VALUES (?, ?, ?, ?, ?, ?)`,
-                [roomId, nickname, message, messageType, filePath, fileName]
-            );
+        const messageObj = {
+            id: Date.now() + Math.random(), // ID temporal
+            roomId,
+            nickname,
+            message,
+            messageType,
+            filePath,
+            fileName,
+            timestamp: new Date().toISOString(),
+            userIP: messageData.userIP || null
+        };
 
-            return {
-                id: result.id,
-                roomId,
-                nickname,
-                message,
-                messageType,
-                filePath,
-                fileName,
-                timestamp: new Date().toISOString()
-            };
+        try {
+            // Si Redis está disponible, usar procesamiento en lotes
+            if (this.redis) {
+                this.messageQueue.push(messageObj);
+                
+                // Si la cola está llena, procesar inmediatamente
+                if (this.messageQueue.length >= this.batchSize) {
+                    await this.processBatch();
+                }
+            } else {
+                // Procesamiento directo sin Redis
+                const result = await this.db.run(
+                    `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name) 
+                     VALUES (?, ?, ?, ?, ?, ?)`,
+                    [roomId, nickname, message, messageType, filePath, fileName]
+                );
+                messageObj.id = result.id;
+            }
+
+            // Invalidar cache de mensajes de la sala
+            if (this.redis) {
+                await this.redis.client.del(`room:${roomId}:messages`);
+            }
+
+            return messageObj;
         } catch (error) {
             throw new Error('Error al guardar mensaje: ' + error.message);
         }
+    }
+
+    // Procesamiento en lotes para mejor rendimiento
+    async processBatch() {
+        if (this.messageQueue.length === 0) return;
+
+        const batch = this.messageQueue.splice(0, this.batchSize);
+        
+        try {
+            // Preparar consulta en lote
+            const values = batch.map(msg => 
+                `(${msg.roomId}, '${msg.nickname}', '${msg.message.replace(/'/g, "''")}', 
+                  '${msg.messageType}', ${msg.filePath ? `'${msg.filePath}'` : 'NULL'}, 
+                  ${msg.fileName ? `'${msg.fileName}'` : 'NULL'}, '${msg.timestamp}')`
+            ).join(',');
+
+            const query = `
+                INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name, timestamp) 
+                VALUES ${values}
+            `;
+
+            await this.db.run(query);
+            console.log(`Procesado lote de ${batch.length} mensajes`);
+        } catch (error) {
+            console.error('Error procesando lote de mensajes:', error);
+            // Reintroducir mensajes en la cola para reintento
+            this.messageQueue.unshift(...batch);
+        }
+    }
+
+    // Iniciar procesamiento automático en lotes
+    startBatchProcessing() {
+        setInterval(async () => {
+            if (this.messageQueue.length > 0) {
+                await this.processBatch();
+            }
+        }, this.batchInterval);
     }
 
     // Obtener historial de mensajes de una sala
