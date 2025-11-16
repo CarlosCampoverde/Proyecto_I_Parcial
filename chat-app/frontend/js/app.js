@@ -475,16 +475,28 @@ class ChatApp {
         `;
         
         // Agregar información de archivo si es necesario
-        if (message.type === 'file' || message.type === 'image') {
+        if (message.messageType === 'file' || message.messageType === 'image') {
+            const isImage = message.messageType === 'image';
             content += `
                 <div class="file-message">
-                    <i class="fas ${message.type === 'image' ? 'fa-image' : 'fa-file'} file-icon"></i>
+                    <i class="fas ${isImage ? 'fa-image' : 'fa-file'} file-icon"></i>
                     <div class="file-info">
-                        <div class="file-name">${message.fileName}</div>
-                        <a href="${message.filePath}" target="_blank" class="btn btn-sm btn-primary">Descargar</a>
+                        <div class="file-name">${message.fileName || 'Archivo'}</div>
+                        <a href="${message.filePath}" target="_blank" class="btn btn-sm btn-primary">
+                            ${isImage ? 'Ver imagen' : 'Descargar'}
+                        </a>
                     </div>
                 </div>
             `;
+            
+            // Si es una imagen, mostrar preview
+            if (isImage) {
+                content += `
+                    <div class="image-preview">
+                        <img src="${message.filePath}" alt="${message.fileName}" style="max-width: 300px; max-height: 200px; border-radius: 8px; margin-top: 8px;" onclick="window.open('${message.filePath}', '_blank')">
+                    </div>
+                `;
+            }
         }
         
         messageElement.innerHTML = content;

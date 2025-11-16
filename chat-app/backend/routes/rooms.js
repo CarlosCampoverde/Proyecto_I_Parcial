@@ -300,6 +300,20 @@ router.post('/:id/upload', upload.single('file'), async (req, res) => {
 
         const savedMessage = await roomManager.saveMessage(messageData);
 
+        // Emitir mensaje vía Socket.IO para que aparezca en tiempo real
+        const io = req.app.locals.io;
+        if (io) {
+            io.to(roomId.toString()).emit('newMessage', {
+                id: savedMessage.id,
+                nickname: nickname,
+                message: messageData.message,
+                messageType: messageData.messageType,
+                filePath: messageData.filePath,
+                fileName: messageData.fileName,
+                timestamp: new Date().toISOString()
+            });
+        }
+
         res.json({
             success: true,
             message: 'Archivo subido exitosamente',

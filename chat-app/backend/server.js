@@ -43,9 +43,10 @@ const database = new Database();
 const roomManager = new RoomManager(database);
 const userManager = new UserManager(database);
 
-// Hacer managers disponibles para las rutas
+// Hacer managers y io disponibles para las rutas
 app.locals.roomManager = roomManager;
 app.locals.userManager = userManager;
+app.locals.io = io;
 
 // Rutas API
 app.use('/api/auth', authRoutes);
