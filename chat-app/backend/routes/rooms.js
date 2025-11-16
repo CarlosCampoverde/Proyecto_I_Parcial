@@ -103,7 +103,7 @@ router.get('/validate-pin/:pin', async (req, res) => {
         if (!roomManager.validatePin(pin)) {
             return res.status(400).json({
                 success: false,
-                message: 'PIN debe tener 6 dígitos'
+                message: 'PIN debe tener entre 4 y 6 dígitos'
             });
         }
 

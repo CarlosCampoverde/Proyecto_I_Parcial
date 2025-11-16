@@ -313,7 +313,7 @@ class RoomManager {
 
     // Validar PIN
     validatePin(pin) {
-        return /^\d{6}$/.test(pin);
+        return /^\d{4,6}$/.test(pin);
     }
 
     // Validar nombre de sala

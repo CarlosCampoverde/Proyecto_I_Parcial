@@ -99,10 +99,10 @@ const validateRoomParams = (req, res, next) => {
     
     if (req.params.pin) {
         const pin = req.params.pin;
-        if (!/^\d{6}$/.test(pin)) {
+        if (!/^\d{4,6}$/.test(pin)) {
             return res.status(400).json({
                 success: false,
-                message: 'PIN debe tener exactamente 6 dígitos'
+                message: 'PIN debe tener entre 4 y 6 dígitos'
             });
         }
     }
