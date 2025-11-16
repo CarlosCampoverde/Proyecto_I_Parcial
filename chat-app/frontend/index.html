@@ -54,6 +54,12 @@
             <!-- Admin Section (Hidden by default) -->
             <section id="adminSection" class="admin-section" style="display: none;">
                 <div class="admin-content">
+                    <!-- Back Button -->
+                    <div class="back-button-container">
+                        <button id="backToWelcomeBtn" class="btn btn-link back-btn">
+                            ← Volver al Inicio
+                        </button>
+                    </div>
                     <!-- Admin Login -->
                     <div id="adminLogin" class="admin-login">
                         <h3>Acceso de Administrador</h3>
@@ -75,6 +81,11 @@
 
                     <!-- Admin Register -->
                     <div id="adminRegister" class="admin-register" style="display: none;">
+                        <div class="back-button-container">
+                            <button id="backToLoginFromRegisterBtn" class="btn btn-link back-btn">
+                                ← Volver al Login
+                            </button>
+                        </div>
                         <h3>Registro de Administrador</h3>
                         <form id="adminRegisterForm">
                             <div class="form-group">
@@ -98,6 +109,11 @@
 
                     <!-- Admin Dashboard -->
                     <div id="adminDashboard" class="admin-dashboard" style="display: none;">
+                        <div class="back-button-container">
+                            <button id="logoutAdminBtn" class="btn btn-link back-btn">
+                                ← Cerrar Sesión
+                            </button>
+                        </div>
                         <h3>Panel de Administración</h3>
                         
                         <!-- Create Room Form -->
@@ -158,7 +174,7 @@
                                 Usuarios (<span id="userCount">0</span>)
                             </button>
                             <button id="leaveRoomBtn" class="btn btn-danger btn-sm">
-                                Salir
+                                ← Salir del Chat
                             </button>
                         </div>
                     </div>

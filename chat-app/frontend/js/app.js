@@ -52,6 +52,11 @@ class ChatApp {
         // Validación en tiempo real
         document.getElementById('nickname').addEventListener('input', (e) => this.validateNickname(e.target.value));
         document.getElementById('joinRoomPin').addEventListener('input', (e) => this.validatePin(e.target.value));
+        
+        // Botones de navegación "Volver"
+        document.getElementById('backToWelcomeBtn').addEventListener('click', () => this.showWelcomeSection());
+        document.getElementById('backToLoginFromRegisterBtn').addEventListener('click', () => this.showAdminLogin());
+        document.getElementById('logoutAdminBtn').addEventListener('click', () => this.handleAdminLogout());
     }
 
     // Inicializar Socket.IO
@@ -271,6 +276,21 @@ class ChatApp {
         } finally {
             this.hideLoading();
         }
+    }
+
+    // Cerrar sesión de administrador
+    handleAdminLogout() {
+        // Limpiar datos de sesión
+        this.currentUser = null;
+        
+        // Limpiar formularios
+        document.getElementById('adminLoginForm').reset();
+        
+        // Volver a la pantalla de login de admin
+        this.showAdminLogin();
+        
+        // Mostrar notificación
+        this.showNotification('Sesión cerrada correctamente', 'success');
     }
 
     async handleCreateRoom(e) {

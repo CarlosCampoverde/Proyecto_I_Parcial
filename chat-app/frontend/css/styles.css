@@ -232,6 +232,36 @@ body {
     font-size: var(--font-size-sm);
 }
 
+/* Back Button Styles */
+.back-button-container {
+    margin-bottom: 1rem;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-sm);
+    color: var(--secondary-color);
+    background: transparent;
+    border: 1px solid var(--secondary-color);
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.back-btn:hover {
+    background: var(--secondary-color);
+    color: var(--white);
+    text-decoration: none;
+}
+
+.back-btn:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
 /* Admin Section */
 .admin-section {
     background: var(--white);
