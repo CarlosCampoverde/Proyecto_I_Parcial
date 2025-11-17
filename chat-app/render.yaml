@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: chat-app
+    env: node
+    repo: https://github.com/CarlosCampoverde/Proyecto_I_Parcial.git
+    rootDir: chat-app
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    autoDeploy: true
+    branch: main
