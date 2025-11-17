@@ -1,10 +1,22 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 class Database {
     constructor() {
         this.db = null;
-        this.dbPath = path.join(__dirname, '../config/chat.db');
+        // Usar directorio actual para producción o config para desarrollo
+        const dbDir = process.env.NODE_ENV === 'production' 
+            ? __dirname 
+            : path.join(__dirname, '../config');
+        
+        // Asegurar que el directorio existe
+        if (!fs.existsSync(dbDir)) {
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
+        
+        this.dbPath = path.join(dbDir, 'chat.db');
+        console.log('Ruta de base de datos:', this.dbPath);
     }
 
     async init() {
@@ -12,6 +24,7 @@ class Database {
             this.db = new sqlite3.Database(this.dbPath, (err) => {
                 if (err) {
                     console.error('Error al conectar con la base de datos:', err.message);
+                    console.error('Ruta intentada:', this.dbPath);
                     reject(err);
                 } else {
                     console.log('Conectado a la base de datos SQLite');
