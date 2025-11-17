@@ -258,17 +258,23 @@ async function startServer() {
         await database.init();
         console.log('Base de datos inicializada correctamente');
 
-        const PORT = process.env.PORT || 3000;
-        server.listen(PORT, () => {
-            console.log(`Servidor corriendo en puerto ${PORT}`);
-            console.log(`Acceso web: http://localhost:${PORT}`);
-        });
+        // Solo iniciar servidor si no estamos en Vercel
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            const PORT = process.env.PORT || 3000;
+            server.listen(PORT, () => {
+                console.log(`Servidor corriendo en puerto ${PORT}`);
+                console.log(`Acceso web: http://localhost:${PORT}`);
+            });
+        }
     } catch (error) {
         console.error('Error al inicializar el servidor:', error);
-        process.exit(1);
+        if (!process.env.VERCEL) {
+            process.exit(1);
+        }
     }
 }
 
+// Inicializar la base de datos
 startServer();
 
 // Manejo de errores no capturados
