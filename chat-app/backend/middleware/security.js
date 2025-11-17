@@ -4,7 +4,7 @@ const rateLimit = require('express-rate-limit');
 // Rate limiter específico para autenticación
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 5, // máximo 5 intentos por IP
+    max: 50, // máximo 5 intentos por IP
     message: {
         success: false,
         message: 'Demasiados intentos de autenticación. Inténtalo más tarde.'
