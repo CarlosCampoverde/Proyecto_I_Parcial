@@ -1,3 +1,16 @@
+/**
+ * Sistema de Chat en Tiempo Real
+ * Servidor principal que maneja WebSockets, autenticación de administradores,
+ * gestión de salas y comunicación en tiempo real entre usuarios.
+ * 
+ * Características:
+ * - Salas de chat con PINs de acceso
+ * - Tipos de sala: texto y multimedia
+ * - Control de sesión única por dispositivo
+ * - Subida y descarga de archivos
+ * - Rate limiting y validaciones de seguridad
+ */
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -26,24 +39,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// Configuración de rate limiting para prevenir ataques de fuerza bruta
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100, // máximo 100 requests por IP
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: 'Demasiadas peticiones desde esta IP, inténtalo más tarde.'
 });
 app.use(limiter);
 
-// Servir archivos estáticos
+// Configuración de archivos estáticos
 app.use(express.static(path.join(__dirname, '../frontend')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Inicializar managers
+// Inicialización de la capa de datos y managers de negocio
 const database = new Database();
 const roomManager = new RoomManager(database);
 const userManager = new UserManager(database);
 
-// Hacer managers y io disponibles para las rutas
+// Inyección de dependencias para las rutas
 app.locals.roomManager = roomManager;
 app.locals.userManager = userManager;
 app.locals.io = io;
@@ -57,24 +70,30 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Gestión de conexiones Socket.IO
-const connectedUsers = new Map(); // Map de socketId -> userInfo
-const userSessions = new Map(); // Map de IP -> userInfo para control de sesión única
+// Gestión de conexiones WebSocket y control de sesiones
+const connectedUsers = new Map();
+const userSessions = new Map();
 
+/**
+ * Manejo de conexiones WebSocket
+ * Gestiona la conexión de usuarios, validación de sesiones y 
+ * comunicación en tiempo real entre usuarios de las salas
+ */
 io.on('connection', (socket) => {
     console.log(`Usuario conectado: ${socket.id}`);
     
-    // Obtener IP del cliente
     const clientIP = socket.handshake.headers['x-forwarded-for'] || 
                      socket.handshake.address || 
                      socket.conn.remoteAddress;
 
-    // Evento: Unirse a una sala
+    /**
+     * Evento: Unirse a una sala de chat
+     * Valida PIN, nickname, control de sesión única y gestiona la conexión
+     */
     socket.on('joinRoom', async (data) => {
         try {
             const { pin, nickname } = data;
             
-            // Verificar sesión única por IP
             if (userSessions.has(clientIP)) {
                 const existingUser = userSessions.get(clientIP);
                 if (existingUser.nickname !== nickname) {
@@ -85,14 +104,12 @@ io.on('connection', (socket) => {
                 }
             }
 
-            // Validar PIN y obtener información de la sala
             const room = await roomManager.getRoomByPin(pin);
             if (!room) {
                 socket.emit('error', { message: 'PIN de sala inválido' });
                 return;
             }
 
-            // Validar nickname
             if (!nickname || nickname.length < 2 || nickname.length > 20) {
                 socket.emit('error', { 
                     message: 'El nickname debe tener entre 2 y 20 caracteres' 
@@ -100,7 +117,7 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Verificar si el usuario ya está en la sala
+            // Verificar unicidad del nickname en la sala
             const usersInRoom = Array.from(connectedUsers.values())
                 .filter(user => user.roomId === room.id);
             
@@ -164,7 +181,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento: Enviar mensaje
+    /**
+     * Evento: Enviar mensaje
+     * Procesa y valida mensajes, los guarda en BD y los distribuye en tiempo real
+     */
     socket.on('sendMessage', async (data) => {
         try {
             const userInfo = connectedUsers.get(socket.id);
@@ -178,7 +198,6 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Validar longitud del mensaje
             if (message.length > 500) {
                 socket.emit('error', { 
                     message: 'El mensaje es demasiado largo (máximo 500 caracteres)' 
@@ -186,7 +205,7 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Guardar mensaje en la base de datos
+            // Persistir mensaje y distribuir a usuarios conectados
             const messageData = {
                 roomId: userInfo.roomId,
                 nickname: userInfo.nickname,
@@ -222,7 +241,10 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Evento: Desconexión
+    /**
+     * Evento: Desconexión de usuario
+     * Limpia sesiones y notifica a otros usuarios de la sala
+     */
     socket.on('disconnect', () => {
         const userInfo = connectedUsers.get(socket.id);
         if (userInfo) {
@@ -252,13 +274,15 @@ io.on('connection', (socket) => {
     });
 });
 
-// Inicializar base de datos y servidor
+/**
+ * Inicialización del servidor
+ * Configura la base de datos SQLite y arranca el servidor HTTP/WebSocket
+ */
 async function startServer() {
     try {
         await database.init();
         console.log('Base de datos inicializada correctamente');
 
-        // Iniciar servidor (funciona tanto local como en producción)
         const PORT = process.env.PORT || 3000;
         server.listen(PORT, '0.0.0.0', () => {
             console.log(`Servidor corriendo en puerto ${PORT}`);
@@ -275,10 +299,10 @@ async function startServer() {
     }
 }
 
-// Inicializar la base de datos
+// Inicializar aplicación
 startServer();
 
-// Manejo de errores no capturados
+// Manejo de errores no capturados para estabilidad del sistema
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });

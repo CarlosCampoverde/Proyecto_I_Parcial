@@ -1,4 +1,15 @@
-// Chat App - JavaScript Principal
+/**
+ * Cliente de Chat en Tiempo Real
+ * Clase principal que maneja la interfaz de usuario, conexiones WebSocket
+ * y la lógica del cliente para el sistema de chat colaborativo
+ * 
+ * Funcionalidades:
+ * - Gestión de conexiones Socket.IO
+ * - Interfaz de administración y usuario
+ * - Validación de formularios en tiempo real
+ * - Manejo de archivos multimedia
+ */
+
 class ChatApp {
     constructor() {
         this.socket = null;

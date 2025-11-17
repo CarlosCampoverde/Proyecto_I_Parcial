@@ -4,21 +4,21 @@ Una aplicación de chat en tiempo real desarrollada con Node.js, Socket.IO y SQL
 
 ## Características Principales
 
-### 🚀 Funcionalidades Core
+### Funcionalidades Core
 - **Salas de Chat en Tiempo Real**: Comunicación instantánea mediante WebSockets
 - **Gestión de Salas**: Crear salas de texto y multimedia con PINs únicos
 - **Autenticación Segura**: Sistema de nicknames y validación de acceso
 - **Sesión Única**: Control de una sesión por IP/dispositivo
 - **Subida de Archivos**: Compartir imágenes y documentos en salas multimedia
 
-### 🛡️ Seguridad
+### Seguridad
 - Validación de nicknames y mensajes
 - Rate limiting para prevenir spam
 - Control de acceso mediante PINs de 6 dígitos
 - Sesión única por dispositivo/IP
 - Validación de tipos de archivo
 
-### 🎨 Interfaz de Usuario
+### Interfaz de Usuario
 - Diseño responsivo y moderno
 - Panel de administración completo
 - Notificaciones en tiempo real

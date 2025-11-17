@@ -1,3 +1,9 @@
+/**
+ * Capa de Acceso a Datos - SQLite
+ * Maneja la conexión, inicialización y creación de esquemas
+ * para la base de datos embebida del sistema de chat
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
