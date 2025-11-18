@@ -199,25 +199,58 @@ async function startWorkerServer() {
                 try {
                     const { pin, nickname } = data;
                     
-                    // Verificación de sesión única con Redis
+                    // Verificación de sesión única por IP - SOLO UNA CONEXIÓN POR IP
+                    let existingSession = null;
+                    
                     if (redisManager) {
-                        const existingSession = await redisManager.getUserSession(clientIP);
-                        if (existingSession && existingSession.nickname !== nickname) {
-                            socket.emit('error', {
-                                message: 'Ya tienes una sesión activa desde este dispositivo'
-                            });
-                            return;
-                        }
+                        existingSession = await redisManager.getUserSession(clientIP);
                     } else {
-                        // Fallback a verificación en memoria
+                        // Verificación en memoria
                         if (userSessions.has(clientIP)) {
-                            const existingUser = userSessions.get(clientIP);
-                            if (existingUser.nickname !== nickname) {
-                                socket.emit('error', {
-                                    message: 'Ya tienes una sesión activa desde este dispositivo'
-                                });
-                                return;
+                            existingSession = userSessions.get(clientIP);
+                        }
+                    }
+                    
+                    // Si existe una sesión desde esta IP, desconectar la anterior
+                    if (existingSession) {
+                        console.log(`[Worker ${process.pid}] Desconectando sesión anterior para IP ${clientIP}`);
+                        
+                        // Buscar el socket de la sesión anterior y desconectarlo
+                        const existingSocket = io.sockets.sockets.get(existingSession.socketId);
+                        if (existingSocket) {
+                            existingSocket.emit('forceDisconnect', {
+                                message: 'Nueva conexión detectada desde tu dispositivo'
+                            });
+                            existingSocket.disconnect(true);
+                        }
+                        
+                        // Limpiar la sesión anterior
+                        if (redisManager) {
+                            await redisManager.deleteUserSession(clientIP);
+                            if (existingSession.roomId) {
+                                await redisManager.removeUserFromRoom(existingSession.roomId, existingSession.socketId);
+                                await redisManager.decrementRoomUsers(existingSession.roomId);
                             }
+                        } else {
+                            userSessions.delete(clientIP);
+                            connectedUsers.delete(existingSession.socketId);
+                        }
+                        
+                        // Notificar a la sala anterior que el usuario se desconectó
+                        if (existingSession.roomId) {
+                            io.to(existingSession.roomId.toString()).emit('userLeft', {
+                                nickname: existingSession.nickname,
+                                message: `${existingSession.nickname} se ha desconectado`
+                            });
+                            
+                            // Actualizar lista de usuarios en la sala anterior
+                            const remainingUsers = redisManager ?
+                                await redisManager.getRoomActiveUsers(existingSession.roomId) :
+                                Array.from(connectedUsers.values()).filter(u => u.roomId === existingSession.roomId);
+                            
+                            io.to(existingSession.roomId.toString()).emit('updateUserList', {
+                                users: remainingUsers.map(u => u.nickname)
+                            });
                         }
                     }
 

@@ -94,13 +94,38 @@ io.on('connection', (socket) => {
         try {
             const { pin, nickname } = data;
             
+            // Verificación de sesión única por IP - SOLO UNA CONEXIÓN POR IP
             if (userSessions.has(clientIP)) {
                 const existingUser = userSessions.get(clientIP);
-                if (existingUser.nickname !== nickname) {
-                    socket.emit('error', {
-                        message: 'Ya tienes una sesión activa desde este dispositivo'
+                console.log(`Desconectando sesión anterior para IP ${clientIP}`);
+                
+                // Buscar el socket de la sesión anterior y desconectarlo
+                const existingSocket = io.sockets.sockets.get(existingUser.socketId);
+                if (existingSocket) {
+                    existingSocket.emit('forceDisconnect', {
+                        message: 'Nueva conexión detectada desde tu dispositivo'
                     });
-                    return;
+                    existingSocket.disconnect(true);
+                }
+                
+                // Limpiar la sesión anterior
+                userSessions.delete(clientIP);
+                connectedUsers.delete(existingUser.socketId);
+                
+                // Notificar a la sala anterior que el usuario se desconectó
+                if (existingUser.roomId) {
+                    io.to(existingUser.roomId.toString()).emit('userLeft', {
+                        nickname: existingUser.nickname,
+                        message: `${existingUser.nickname} se ha desconectado`
+                    });
+                    
+                    // Actualizar lista de usuarios en la sala anterior
+                    const remainingUsers = Array.from(connectedUsers.values())
+                        .filter(u => u.roomId === existingUser.roomId);
+                    
+                    io.to(existingUser.roomId.toString()).emit('updateUserList', {
+                        users: remainingUsers.map(u => u.nickname)
+                    });
                 }
             }
 

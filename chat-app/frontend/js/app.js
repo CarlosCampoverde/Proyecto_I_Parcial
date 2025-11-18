@@ -99,6 +99,7 @@ class ChatApp {
         this.socket.on('updateUserList', (data) => this.handleUpdateUserList(data));
         this.socket.on('userTyping', (data) => this.handleUserTyping(data));
         this.socket.on('error', (data) => this.handleSocketError(data));
+        this.socket.on('forceDisconnect', (data) => this.handleForceDisconnect(data));
     }
 
     // Mostrar secciones
@@ -462,6 +463,14 @@ class ChatApp {
     handleSocketError(data) {
         this.showNotification(data.message, 'error');
         this.hideLoading();
+    }
+
+    handleForceDisconnect(data) {
+        this.showNotification(data.message || 'Has sido desconectado por una nueva sesión', 'warning');
+        this.currentUser = null;
+        this.currentRoom = null;
+        this.showWelcomeSection();
+        // El socket se desconectará automáticamente por el servidor
     }
 
     // Funciones del chat
