@@ -27,6 +27,10 @@ const roomRoutes = require('./routes/rooms');
 
 const app = express();
 const server = http.createServer(app);
+
+// Configurar trust proxy para Render y otros proxies
+app.set('trust proxy', true);
+
 const io = socketIo(server, {
     cors: {
         origin: "*",
@@ -60,6 +64,19 @@ const userManager = new UserManager(database);
 app.locals.roomManager = roomManager;
 app.locals.userManager = userManager;
 app.locals.io = io;
+
+// Endpoint de verificación de estado
+app.get('/api/status', (req, res) => {
+    res.json({
+        status: 'running',
+        database: 'SQLite',
+        redis: 'disabled',
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
+        trustProxy: app.get('trust proxy'),
+        hasDatabase: !!database
+    });
+});
 
 // Rutas API
 app.use('/api/auth', authRoutes);

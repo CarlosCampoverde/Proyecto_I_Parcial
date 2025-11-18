@@ -60,6 +60,9 @@ async function startWorkerServer() {
     const app = express();
     const server = http.createServer(app);
     
+    // Configurar trust proxy para Render y otros proxies
+    app.set('trust proxy', true);
+    
     let io;
     let database;
     let redisManager;
@@ -140,6 +143,20 @@ async function startWorkerServer() {
             maxAge: '7d',
             etag: true
         }));
+
+        // Endpoint de verificación de estado
+        app.get('/api/status', (req, res) => {
+            res.json({
+                status: 'running',
+                database: usePostgres ? 'PostgreSQL' : 'SQLite',
+                redis: useRedis ? 'enabled' : 'disabled',
+                environment: process.env.NODE_ENV,
+                timestamp: new Date().toISOString(),
+                trustProxy: app.get('trust proxy'),
+                hasDatabase: !!database,
+                hasRedis: !!redisManager
+            });
+        });
 
         // Hacer managers disponibles para las rutas
         app.locals.roomManager = roomManager;
