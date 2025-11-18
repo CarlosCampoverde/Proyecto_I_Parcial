@@ -3,16 +3,29 @@ const { Pool } = require('pg');
 class PostgresDatabase {
     constructor() {
         this.pool = null;
-        this.config = {
-            user: process.env.DB_USER || 'postgres',
-            host: process.env.DB_HOST || 'localhost',
-            database: process.env.DB_NAME || 'chatapp',
-            password: process.env.DB_PASSWORD || 'password',
-            port: process.env.DB_PORT || 5432,
-            max: 20, // máximo 20 conexiones en el pool
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 2000,
-        };
+        
+        // Configuración para Render - DATABASE_URL tiene prioridad
+        if (process.env.DATABASE_URL) {
+            this.config = {
+                connectionString: process.env.DATABASE_URL,
+                ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 10000,
+            };
+        } else {
+            // Configuración local o alternativa
+            this.config = {
+                user: process.env.DB_USER || 'postgres',
+                host: process.env.DB_HOST || 'localhost',
+                database: process.env.DB_NAME || 'chatapp',
+                password: process.env.DB_PASSWORD || 'password',
+                port: process.env.DB_PORT || 5432,
+                max: 20,
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: 2000,
+            };
+        }
     }
 
     async init() {
