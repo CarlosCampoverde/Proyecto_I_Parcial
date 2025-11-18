@@ -1,0 +1,26 @@
+# Configuración simplificada para Render
+# Esta versión es más compatible y fácil de aplicar
+
+services:
+  # Aplicación web principal
+  - type: web
+    name: chat-app-web
+    env: node
+    repo: https://github.com/CarlosCampoverde/Proyecto_I_Parcial.git
+    rootDir: chat-app
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server-scalable.js
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: USE_POSTGRES
+        value: false
+    autoDeploy: true
+    branch: main
+
+# Nota: PostgreSQL se creará manualmente desde el dashboard
+# para mayor control y compatibilidad

@@ -9,6 +9,24 @@ const PostgresDatabase = require('../models/postgresDatabase');
 async function migrate() {
     console.log('🚀 Iniciando migración de base de datos...');
     
+    // Verificar configuración
+    console.log('🔍 Verificando configuración...');
+    console.log(`USE_POSTGRES: ${process.env.USE_POSTGRES}`);
+    console.log(`DATABASE_URL: ${process.env.DATABASE_URL ? '✅ Configurada' : '❌ No configurada'}`);
+    
+    if (process.env.USE_POSTGRES !== 'true') {
+        console.log('⚠️  USE_POSTGRES no está configurado como true');
+        console.log('⚠️  La aplicación usará SQLite (datos no persistentes)');
+        console.log('✅ Migración omitida - usando SQLite por defecto');
+        process.exit(0);
+    }
+    
+    if (!process.env.DATABASE_URL) {
+        console.error('❌ DATABASE_URL no está configurada');
+        console.error('💡 Asegúrate de configurar DATABASE_URL en Render');
+        process.exit(1);
+    }
+    
     try {
         const database = new PostgresDatabase();
         await database.init();
@@ -19,9 +37,19 @@ async function migrate() {
         // Agregar algunos datos de ejemplo si es necesario
         await seedInitialData(database);
         
+        // Cerrar conexión
+        if (database.pool) {
+            await database.pool.end();
+            console.log('🔌 Conexión a base de datos cerrada');
+        }
+        
         process.exit(0);
     } catch (error) {
-        console.error('❌ Error durante la migración:', error);
+        console.error('❌ Error durante la migración:', error.message);
+        console.error('💡 Posibles causas:');
+        console.error('   - DATABASE_URL incorrecta');
+        console.error('   - Base de datos PostgreSQL no disponible');
+        console.error('   - Problemas de conectividad');
         process.exit(1);
     }
 }
