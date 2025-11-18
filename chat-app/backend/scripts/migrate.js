@@ -34,6 +34,27 @@ async function migrate() {
         console.log('✅ Migración completada exitosamente');
         console.log('✅ Tablas creadas y base de datos lista para usar');
         
+        // Verificar que todas las tablas existen
+        const tables = await database.pool.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+            ORDER BY table_name
+        `);
+        
+        console.log('📋 Tablas creadas:');
+        tables.rows.forEach(row => {
+            console.log(`   ✅ ${row.table_name}`);
+        });
+        
+        // Verificar específicamente la tabla admins
+        const adminTable = tables.rows.find(row => row.table_name === 'admins');
+        if (adminTable) {
+            console.log('👤 Tabla admins: ✅ Disponible para registro de administradores');
+        } else {
+            console.error('❌ Tabla admins no encontrada - esto causará errores');
+        }
+        
         // Agregar algunos datos de ejemplo si es necesario
         await seedInitialData(database);
         
@@ -50,6 +71,7 @@ async function migrate() {
         console.error('   - DATABASE_URL incorrecta');
         console.error('   - Base de datos PostgreSQL no disponible');
         console.error('   - Problemas de conectividad');
+        console.error('   - Error en creación de tablas');
         process.exit(1);
     }
 }

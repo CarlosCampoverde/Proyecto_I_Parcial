@@ -92,6 +92,27 @@ class PostgresDatabase {
                 last_message_at TIMESTAMPTZ,
                 peak_users INTEGER DEFAULT 0,
                 updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            // Tabla de archivos subidos (para salas multimedia)
+            `CREATE TABLE IF NOT EXISTS files (
+                id SERIAL PRIMARY KEY,
+                message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+                original_name VARCHAR(255) NOT NULL,
+                stored_name VARCHAR(255) NOT NULL,
+                file_size BIGINT NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                upload_path TEXT NOT NULL,
+                uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            // Tabla de administradores del sistema
+            `CREATE TABLE IF NOT EXISTS admins (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                is_active BOOLEAN DEFAULT TRUE
             )`
         ];
 
@@ -107,7 +128,11 @@ class PostgresDatabase {
             'CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id)',
             'CREATE INDEX IF NOT EXISTS idx_active_sessions_room ON active_sessions(room_id)',
             'CREATE INDEX IF NOT EXISTS idx_active_sessions_ip ON active_sessions(user_ip)',
-            'CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON active_sessions(last_activity)'
+            'CREATE INDEX IF NOT EXISTS idx_sessions_last_activity ON active_sessions(last_activity)',
+            'CREATE INDEX IF NOT EXISTS idx_files_message_id ON files(message_id)',
+            'CREATE INDEX IF NOT EXISTS idx_files_uploaded_at ON files(uploaded_at)',
+            'CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)',
+            'CREATE INDEX IF NOT EXISTS idx_admins_active ON admins(is_active)'
         ];
 
         for (const index of indexes) {

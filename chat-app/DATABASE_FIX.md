@@ -1,9 +1,10 @@
 # 🔧 Arreglo de Base de Datos - Solución Completa
 
-## 🎯 **Problema Resuelto**
-❌ **Error**: `this.db.get is not a function` al registrar administrador  
-✅ **Causa**: Los managers usaban métodos de SQLite con PostgreSQL  
-✅ **Solución**: Creado `DatabaseAdapter` para compatibilidad universal
+## 🎯 **Problemas Resueltos**
+❌ **Error 1**: `this.db.get is not a function` al registrar administrador  
+❌ **Error 2**: `relation "admins" does not exist` en PostgreSQL  
+✅ **Causa**: Los managers usaban métodos de SQLite + tabla faltante en PostgreSQL  
+✅ **Solución**: `DatabaseAdapter` + tabla `admins` agregada a PostgreSQL
 
 ---
 
@@ -28,6 +29,11 @@
 - ✅ **Constructor** usa `DatabaseAdapter`
 - ✅ **Método crítico** `createAdmin()` arreglado
 - ✅ **Autenticación** `authenticateAdmin()` actualizada
+
+### **4. Agregada tabla `admins` a PostgreSQL** (`models/postgresDatabase.js`)
+- ✅ **Tabla admins** agregada con estructura PostgreSQL
+- ✅ **Índices** para username y is_active
+- ✅ **Migración mejorada** con verificación de tablas
 
 ---
 

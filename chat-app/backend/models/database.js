@@ -50,7 +50,9 @@ class Database {
                 pin TEXT UNIQUE NOT NULL,
                 admin_password TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT 1
+                is_active BOOLEAN DEFAULT 1,
+                max_users INTEGER DEFAULT 50,
+                user_count INTEGER DEFAULT 0
             )`,
             
             // Tabla de mensajes
@@ -63,6 +65,7 @@ class Database {
                 file_path TEXT,
                 file_name TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                user_ip TEXT,
                 FOREIGN KEY (room_id) REFERENCES rooms (id) ON DELETE CASCADE
             )`,
             
