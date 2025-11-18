@@ -60,8 +60,12 @@ async function startWorkerServer() {
     const app = express();
     const server = http.createServer(app);
     
-    // Configurar trust proxy para Render y otros proxies
-    app.set('trust proxy', true);
+    // Configurar trust proxy específico para Render (más seguro)
+    if (process.env.NODE_ENV === 'production') {
+        app.set('trust proxy', 1); // Solo confiar en el primer proxy (Render)
+    } else {
+        app.set('trust proxy', false); // Desarrollo local sin proxy
+    }
     
     let io;
     let database;
@@ -126,8 +130,23 @@ async function startWorkerServer() {
                     next();
                 };
             } else {
-                // Rate limiting local
-                return rateLimit({ windowMs, max, message: { success: false, message } });
+                // Rate limiting local con configuración segura
+                return rateLimit({ 
+                    windowMs, 
+                    max, 
+                    message: { success: false, message },
+                    standardHeaders: true,
+                    legacyHeaders: false,
+                    // Configuración específica para obtener IP real de forma segura
+                    keyGenerator: (req) => {
+                        // En producción con proxy, usar X-Forwarded-For del primer proxy
+                        if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-for']) {
+                            return req.headers['x-forwarded-for'].split(',')[0].trim();
+                        }
+                        // En desarrollo o sin proxy, usar IP directa
+                        return req.ip;
+                    }
+                });
             }
         };
 
@@ -153,6 +172,8 @@ async function startWorkerServer() {
                 environment: process.env.NODE_ENV,
                 timestamp: new Date().toISOString(),
                 trustProxy: app.get('trust proxy'),
+                clientIP: req.ip,
+                realIP: req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.ip,
                 hasDatabase: !!database,
                 hasRedis: !!redisManager
             });

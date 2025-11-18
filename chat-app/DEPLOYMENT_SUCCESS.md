@@ -6,10 +6,11 @@ URL: **https://proyecto-i-parcial.onrender.com**
 
 ---
 
-## 🔧 **Problema Solucionado**
+## 🔧 **Problemas Solucionados**
 
-❌ **Error anterior**: `express-rate-limit` no podía identificar usuarios correctamente por `X-Forwarded-For`  
-✅ **Solución aplicada**: Agregado `app.set('trust proxy', true)` para compatibilidad con Render
+❌ **Error 1**: `express-rate-limit` no podía identificar usuarios por `X-Forwarded-For`  
+❌ **Error 2**: `trust proxy: true` era demasiado permisivo para seguridad  
+✅ **Solución final**: Configurado `trust proxy: 1` específico para Render + rate limiting seguro
 
 ---
 
@@ -28,7 +29,9 @@ https://proyecto-i-parcial.onrender.com/api/status
   "database": "PostgreSQL", // ← Esto confirma persistencia
   "redis": "enabled",       // ← Opcional
   "environment": "production",
-  "trustProxy": true,       // ← Arreglado ✅
+  "trustProxy": 1,          // ← Configuración segura ✅
+  "clientIP": "10.x.x.x",   // ← IP interna de Render
+  "realIP": "tu.ip.real",   // ← Tu IP real desde internet
   "hasDatabase": true
 }
 ```

@@ -28,8 +28,12 @@ const roomRoutes = require('./routes/rooms');
 const app = express();
 const server = http.createServer(app);
 
-// Configurar trust proxy para Render y otros proxies
-app.set('trust proxy', true);
+// Configurar trust proxy específico para Render (más seguro)
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1); // Solo confiar en el primer proxy (Render)
+} else {
+    app.set('trust proxy', false); // Desarrollo local sin proxy
+}
 
 const io = socketIo(server, {
     cors: {
@@ -47,7 +51,18 @@ app.use(express.urlencoded({ extended: true }));
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: 'Demasiadas peticiones desde esta IP, inténtalo más tarde.'
+    message: 'Demasiadas peticiones desde esta IP, inténtalo más tarde.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    // Configuración específica para obtener IP real de forma segura
+    keyGenerator: (req) => {
+        // En producción con proxy, usar X-Forwarded-For del primer proxy
+        if (process.env.NODE_ENV === 'production' && req.headers['x-forwarded-for']) {
+            return req.headers['x-forwarded-for'].split(',')[0].trim();
+        }
+        // En desarrollo o sin proxy, usar IP directa
+        return req.ip;
+    }
 });
 app.use(limiter);
 
@@ -74,6 +89,8 @@ app.get('/api/status', (req, res) => {
         environment: process.env.NODE_ENV,
         timestamp: new Date().toISOString(),
         trustProxy: app.get('trust proxy'),
+        clientIP: req.ip,
+        realIP: req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.ip,
         hasDatabase: !!database
     });
 });
