@@ -1,8 +1,10 @@
 const { v4: uuidv4 } = require('uuid');
+const DatabaseAdapter = require('./databaseAdapter');
 
 class RoomManager {
     constructor(database, redisManager = null) {
-        this.db = database;
+        this.db = new DatabaseAdapter(database); // Usar adaptador
+        this.rawDb = database; // Mantener referencia a la BD original si es necesaria
         this.redis = redisManager;
         this.messageQueue = [];
         this.batchSize = 10;
@@ -37,13 +39,13 @@ class RoomManager {
         }
 
         // Verificar que el PIN no existe
-        const existingRoom = await this.db.get('SELECT id FROM rooms WHERE pin = ?', [pin]);
+        const existingRoom = await this.db.getAdapted('SELECT id FROM rooms WHERE pin = ?', [pin]);
         if (existingRoom) {
             throw new Error('Este PIN ya está en uso. Por favor, elige otro PIN.');
         }
 
         try {
-            const result = await this.db.run(
+            const result = await this.db.runAdapted(
                 `INSERT INTO rooms (name, type, pin, admin_password) 
                  VALUES (?, ?, ?, ?)`,
                 [name, type, pin, null]
@@ -78,7 +80,7 @@ class RoomManager {
             }
         }
 
-        const room = await this.db.get(
+        const room = await this.db.getAdapted(
             'SELECT * FROM rooms WHERE pin = ? AND is_active = 1',
             [pin]
         );
@@ -93,7 +95,7 @@ class RoomManager {
 
     // Obtener sala por ID
     async getRoomById(id) {
-        return await this.db.get(
+        return await this.db.getAdapted(
             'SELECT * FROM rooms WHERE id = ? AND is_active = 1',
             [id]
         );
@@ -101,14 +103,14 @@ class RoomManager {
 
     // Listar todas las salas activas (para administrador)
     async getAllRooms() {
-        return await this.db.all(
-            'SELECT id, name, type, pin, created_at FROM rooms WHERE is_active = 1 ORDER BY created_at DESC'
+        return await this.db.allAdapted(
+            'SELECT id, name, type, pin, created_at, user_count FROM rooms WHERE is_active = 1 ORDER BY created_at DESC'
         );
     }
 
     // Desactivar sala
     async deactivateRoom(id) {
-        const result = await this.db.run(
+        const result = await this.db.runAdapted(
             'UPDATE rooms SET is_active = 0 WHERE id = ?',
             [id]
         );
@@ -119,10 +121,10 @@ class RoomManager {
     async deleteRoom(id) {
         try {
             // Eliminar mensajes asociados
-            await this.db.run('DELETE FROM messages WHERE room_id = ?', [id]);
+            await this.db.runAdapted('DELETE FROM messages WHERE room_id = ?', [id]);
             
             // Eliminar la sala
-            const result = await this.db.run('DELETE FROM rooms WHERE id = ?', [id]);
+            const result = await this.db.runAdapted('DELETE FROM rooms WHERE id = ?', [id]);
             
             return result.changes > 0;
         } catch (error) {
@@ -157,12 +159,12 @@ class RoomManager {
                 }
             } else {
                 // Procesamiento directo sin Redis
-                const result = await this.db.run(
+                const result = await this.db.runAdapted(
                     `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name) 
                      VALUES (?, ?, ?, ?, ?, ?)`,
                     [roomId, nickname, message, messageType, filePath, fileName]
                 );
-                messageObj.id = result.id;
+                messageObj.id = result.lastID;
             }
 
             // Invalidar cache de mensajes de la sala
@@ -195,7 +197,7 @@ class RoomManager {
                 VALUES ${values}
             `;
 
-            await this.db.run(query);
+            await this.db.runAdapted(query);
             console.log(`Procesado lote de ${batch.length} mensajes`);
         } catch (error) {
             console.error('Error procesando lote de mensajes:', error);
@@ -243,7 +245,7 @@ class RoomManager {
     // Obtener estadísticas de una sala
     async getRoomStats(roomId) {
         try {
-            const stats = await this.db.get(
+            const stats = await this.db.getAdapted(
                 `SELECT 
                     COUNT(*) as total_messages,
                     COUNT(DISTINCT nickname) as unique_users,
@@ -274,7 +276,7 @@ class RoomManager {
         cutoffDate.setDate(cutoffDate.getDate() - daysOld);
         
         try {
-            const result = await this.db.run(
+            const result = await this.db.runAdapted(
                 'DELETE FROM messages WHERE room_id = ? AND timestamp < ?',
                 [roomId, cutoffDate.toISOString()]
             );

@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
+const DatabaseAdapter = require('./databaseAdapter');
 
 class UserManager {
     constructor(database) {
-        this.db = database;
+        this.db = new DatabaseAdapter(database); // Usar adaptador
+        this.rawDb = database; // Mantener referencia a la BD original si es necesaria
     }
 
     // Validar nickname
@@ -54,7 +56,7 @@ class UserManager {
         }
 
         // Verificar si ya existe
-        const existing = await this.db.get(
+        const existing = await this.db.getAdapted(
             'SELECT id FROM admins WHERE username = ?',
             [username]
         );
@@ -67,7 +69,7 @@ class UserManager {
         const passwordHash = await bcrypt.hash(password, 12);
 
         try {
-            const result = await this.db.run(
+            const result = await this.db.runAdapted(
                 'INSERT INTO admins (username, password_hash) VALUES (?, ?)',
                 [username, passwordHash]
             );
@@ -85,8 +87,8 @@ class UserManager {
     // Autenticar administrador
     async authenticateAdmin(username, password) {
         try {
-            const admin = await this.db.get(
-                'SELECT id, username, password_hash FROM admins WHERE username = ? AND is_active = 1',
+            const admin = await this.db.getAdapted(
+                'SELECT id, username, password_hash FROM admins WHERE username = ?',
                 [username]
             );
 
