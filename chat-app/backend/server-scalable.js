@@ -384,7 +384,7 @@ async function startWorkerServer() {
                     }
                     
                     if (!messages) {
-                        messages = await roomManager.getRoomMessages(room.id, 50);
+                        messages = await roomManager.getMessages(room.id, 50);
                         if (redisManager) {
                             await redisManager.cacheRoomMessages(room.id, messages);
                         }

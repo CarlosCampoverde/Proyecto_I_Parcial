@@ -160,9 +160,9 @@ class RoomManager {
             } else {
                 // Procesamiento directo sin Redis
                 const result = await this.db.runAdapted(
-                    `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name) 
-                     VALUES (?, ?, ?, ?, ?, ?)`,
-                    [roomId, nickname, message, messageType, filePath, fileName]
+                    `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name, user_ip) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [roomId, nickname, message, messageType, filePath, fileName, messageData.userIP || null]
                 );
                 messageObj.id = result.lastID;
             }
@@ -185,19 +185,14 @@ class RoomManager {
         const batch = this.messageQueue.splice(0, this.batchSize);
         
         try {
-            // Preparar consulta en lote
-            const values = batch.map(msg => 
-                `(${msg.roomId}, '${msg.nickname}', '${msg.message.replace(/'/g, "''")}', 
-                  '${msg.messageType}', ${msg.filePath ? `'${msg.filePath}'` : 'NULL'}, 
-                  ${msg.fileName ? `'${msg.fileName}'` : 'NULL'}, '${msg.timestamp}')`
-            ).join(',');
-
-            const query = `
-                INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name, timestamp) 
-                VALUES ${values}
-            `;
-
-            await this.db.runAdapted(query);
+            // Usar transacciones para inserción en lote
+            for (const msg of batch) {
+                await this.db.runAdapted(
+                    `INSERT INTO messages (room_id, nickname, message, message_type, file_path, file_name, user_ip) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [msg.roomId, msg.nickname, msg.message, msg.messageType, msg.filePath, msg.fileName, msg.userIP]
+                );
+            }
             console.log(`Procesado lote de ${batch.length} mensajes`);
         } catch (error) {
             console.error('Error procesando lote de mensajes:', error);
@@ -321,6 +316,90 @@ class RoomManager {
     // Validar nombre de sala
     validateRoomName(name) {
         return name && name.length >= 3 && name.length <= 50 && /^[a-zA-Z0-9\s\-_]+$/.test(name);
+    }
+
+    // Obtener mensajes de una sala con paginación
+    async getMessages(roomId, limit = 50, offset = 0) {
+        if (!roomId) {
+            return [];
+        }
+
+        // Intentar cache primero
+        if (this.redis) {
+            const cached = await this.redis.getCachedMessages(roomId, limit, offset);
+            if (cached && cached.length > 0) {
+                return cached;
+            }
+        }
+
+        const messages = await this.db.allAdapted(
+            `SELECT id, nickname, message, message_type, file_path, file_name, 
+                    timestamp, user_ip
+             FROM messages 
+             WHERE room_id = ? 
+             ORDER BY id DESC 
+             LIMIT ? OFFSET ?`,
+            [roomId, limit, offset]
+        );
+
+        // Cachear el resultado si Redis está disponible
+        if (this.redis && messages.length > 0) {
+            await this.redis.cacheMessages(roomId, messages, limit, offset);
+        }
+
+        return messages.reverse(); // Mostrar del más antiguo al más reciente
+    }
+
+    // Actualizar contador de usuarios en sala
+    async updateRoomUserCount(roomId, count) {
+        try {
+            await this.db.runAdapted(
+                'UPDATE rooms SET user_count = ? WHERE id = ?',
+                [count, roomId]
+            );
+        } catch (error) {
+            console.error('Error updating room user count:', error);
+        }
+    }
+
+    // Incrementar contador de usuarios
+    async incrementRoomUsers(roomId) {
+        try {
+            await this.db.runAdapted(
+                'UPDATE rooms SET user_count = user_count + 1 WHERE id = ?',
+                [roomId]
+            );
+        } catch (error) {
+            console.error('Error incrementing room users:', error);
+        }
+    }
+
+    // Decrementar contador de usuarios
+    async decrementRoomUsers(roomId) {
+        try {
+            await this.db.runAdapted(
+                'UPDATE rooms SET user_count = GREATEST(0, user_count - 1) WHERE id = ?',
+                [roomId]
+            );
+        } catch (error) {
+            console.error('Error decrementing room users:', error);
+        }
+    }
+
+    // Obtener información completa de sala incluyendo estadísticas
+    async getRoomInfo(roomId) {
+        const room = await this.getRoomById(roomId);
+        if (!room) return null;
+
+        const messageCount = await this.db.getAdapted(
+            'SELECT COUNT(*) as count FROM messages WHERE room_id = ?',
+            [roomId]
+        );
+
+        return {
+            ...room,
+            messageCount: messageCount ? messageCount.count : 0
+        };
     }
 }
 
